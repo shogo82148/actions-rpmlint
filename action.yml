@@ -1,4 +1,4 @@
-name: 'rpmlint with reviewdog'rpmlint
+name: 'rpmlint with reviewdog'
 description: 'run rpmlint with reviewdog'
 author: '@shogo82148'
 inputs:
