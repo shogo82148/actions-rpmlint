@@ -1,0 +1,62 @@
+name: release
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  release:
+    if: ${{ github.event.action != 'labeled' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Bump version on merging Pull Requests with specific labels.
+      # (bump:major,bump:minor,bump:patch)
+      - id: bumpr
+        uses: haya14busa/action-bumpr@v1
+        with:
+          dry_run: true
+
+      # build the Docker Image
+      - name: build the Docker Image
+        if: "${{ !steps.bumpr.outputs.skip }}"
+        run: |
+          ./.github/build.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ steps.bumpr.outputs.next_version }}
+
+      # Create release.
+      - uses: shogo82148/actions-create-release@v1
+        if: "${{ !steps.bumpr.outputs.skip }}"
+        with:
+          tag_name: ${{ steps.bumpr.outputs.next_version }}
+          release_name: Release ${{ steps.bumpr.outputs.next_version }}
+          body: ${{ steps.bumpr.outputs.message }}
+          draft: false
+          prerelease: false
+
+  release-check:
+    if: "${{ github.event.action == 'labeled' }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Post bumpr status comment
+        uses: haya14busa/action-bumpr@v1
