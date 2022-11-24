@@ -1,0 +1,19 @@
+name: reviewdog
+on: [pull_request]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  rpmlint:
+    name: runner / rpmlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: rpmlint
+        uses: ./
+        with:
+          tool_name: rpmlint
