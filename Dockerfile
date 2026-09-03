@@ -1,4 +1,4 @@
-FROM almalinux:9.1-20221117
+FROM almalinux:10.2-minimal-20260902
 
 RUN dnf install -y rpmlint wget git
 
