@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*.*.*"
   pull_request:
     types:
       - labeled
@@ -23,6 +21,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Release tags must be reachable from HEAD because the bump comment uses `git tag --merged`:
+      # https://github.com/haya14busa/bump/blob/9ab5412f5d96eb624c7e8559acbb11330be9901a/main.go#L72
+      - name: checkout to release branch
+        run: |
+          git checkout -b "releases/$(cat .major-version)" "origin/releases/$(cat .major-version)"
+
       # Bump version on merging Pull Requests with specific labels.
       # (bump:major,bump:minor,bump:patch)
       - id: bumpr
@@ -30,10 +34,17 @@ jobs:
         with:
           dry_run: true
 
+      - name: Set up QEMU for ARM Emulation
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
       # build the Docker Image
       - name: build the Docker Image
         if: "${{ !steps.bumpr.outputs.skip }}"
         run: |
+          git checkout main
           ./.github/build.sh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -45,9 +56,8 @@ jobs:
         with:
           tag_name: ${{ steps.bumpr.outputs.next_version }}
           release_name: Release ${{ steps.bumpr.outputs.next_version }}
-          body: ${{ steps.bumpr.outputs.message }}
-          draft: false
-          prerelease: false
+          generate_release_notes: true
+          notes_start_tag: "${{ steps.bumpr.outputs.current_version }}"
 
   release-check:
     if: "${{ github.event.action == 'labeled' }}"
@@ -60,5 +70,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      # Release tags must be reachable from HEAD because the bump comment uses `git tag --merged`:
+      # https://github.com/haya14busa/bump/blob/9ab5412f5d96eb624c7e8559acbb11330be9901a/main.go#L72
+      - name: checkout to release branch
+        run: |
+          git checkout -b "releases/$(cat .major-version)" "origin/releases/$(cat .major-version)"
+
       - name: Post bumpr status comment
         uses: haya14busa/action-bumpr@faf6f474bcb6174125cfc569f0b2e24cbf03d496 # v1.11.4
