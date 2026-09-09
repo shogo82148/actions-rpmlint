@@ -7,11 +7,19 @@ TAG="${INPUT_TAG:-${GITHUB_REF#refs/tags/}}" # v1.2.3
 MINOR="${TAG%.*}"                            # v1.2
 MAJOR="${MINOR%.*}"                          # v1
 MESSAGE="Release ${TAG}"
+IMAGE="ghcr.io/$GITHUB_REPOSITORY:$TAG"
+
+# Login to GHCR
+printenv GITHUB_TOKEN | docker login ghcr.io --username "${GITHUB_REPOSITORY%/*}" --password-stdin
 
 # Build Docker Image
-docker build -t "ghcr.io/$GITHUB_REPOSITORY:$TAG" .
-printenv GITHUB_TOKEN | docker login ghcr.io --username "${GITHUB_REPOSITORY%/*}" --password-stdin
-docker push "ghcr.io/$GITHUB_REPOSITORY:$TAG"
+# Build and push multi-platform image
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    --tag "$IMAGE" \
+    --push \
+    .
+DIGEST=$(docker buildx imagetools inspect "$IMAGE" --format "{{json .Manifest}}" | jq -r '.digest')
 docker logout ghcr.io
 
 # Set up Git.
@@ -26,12 +34,13 @@ git commit -m "bump $MAJOR" || true
 git push origin "$CURRENT_BRANCH"
 
 # checkout releases branch
+git branch -D "releases/$MAJOR" || true
 git checkout -b "releases/$MAJOR" "origin/releases/$MAJOR" || git checkout -b "releases/$MAJOR" "$CURRENT_BRANCH"
 git merge -X theirs --no-ff -m "Merge branch '$CURRENT_BRANCH' into releases/$MAJOR" "$CURRENT_BRANCH" || true
 
 # configure to use the pre-built image
 git checkout "$CURRENT_BRANCH" -- action.yml
-perl -i -pe "s(image:\\s*[\"']?Dockerfile[\"']?)(image: 'docker://ghcr.io/$GITHUB_REPOSITORY:$TAG')" action.yml
+perl -i -pe "s(image:\\s*[\"']?Dockerfile[\"']?)(image: 'docker://ghcr.io/$GITHUB_REPOSITORY:$TAG\\@$DIGEST')" action.yml
 git add action.yml
 git commit -m "bump $TAG"
 git push origin "releases/$MAJOR"
