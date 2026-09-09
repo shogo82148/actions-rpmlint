@@ -2,7 +2,8 @@
 
 Run rpmlint in GitHub Actions. When rpmlint fails during a pull request
 workflow, the action posts the rpmlint output as a pull request comment and
-then fails the step.
+keeps the step successful. The failure is also shown as a warning in the job
+log.
 
 ```yaml
 permissions:
@@ -20,7 +21,8 @@ steps:
 Issues API. GitHub gives read-only tokens to workflows triggered by pull
 requests from forks, so comments cannot be posted for those runs unless the
 repository uses another trusted workflow design. The rpmlint result is still
-reported in the job log in that case.
+reported in the job log in that case. rpmlint findings do not cause the
+workflow job to fail.
 
 ## Inputs
 

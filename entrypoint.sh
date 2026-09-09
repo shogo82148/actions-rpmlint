@@ -14,8 +14,11 @@ exit_code=$?
 cat "${output_file}"
 
 if [ "${exit_code}" -ne 0 ]; then
+  echo "::warning::rpmlint failed with exit code ${exit_code}."
   python3 /post-pr-comment.py "${output_file}" ||
     echo "::warning::Failed to post the rpmlint result to the pull request."
 fi
 
-exit "${exit_code}"
+# rpmlint findings are reported in the log and pull request comment, but they
+# do not fail the workflow job.
+exit 0
