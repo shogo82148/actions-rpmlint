@@ -77,5 +77,6 @@ RUN set -eux; \
 RUN pip3 install --no-cache-dir rpmlint
 
 COPY entrypoint.sh /entrypoint.sh
+COPY post-pr-comment.py /post-pr-comment.py
 
 ENTRYPOINT ["/entrypoint.sh"]
