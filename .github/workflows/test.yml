@@ -1,9 +1,8 @@
-name: reviewdog
+name: test
 on: [pull_request]
 
 permissions:
   contents: read
-  checks: write
   pull-requests: write
   issues: write
 
@@ -11,10 +10,12 @@ jobs:
   rpmlint:
     name: runner / rpmlint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test pull request comment helper
+        run: python3 -m unittest discover -s test -p 'test_*.py'
       - name: rpmlint
         uses: ./
         with:
-          tool_name: rpmlint
           rpmlint_flags: test/spec/*.spec
