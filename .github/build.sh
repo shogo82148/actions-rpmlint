@@ -8,17 +8,17 @@ MINOR="${TAG%.*}"                            # v1.2
 MAJOR="${MINOR%.*}"                          # v1
 MESSAGE="Release ${TAG}"
 IMAGE="ghcr.io/$GITHUB_REPOSITORY:$TAG"
+AMD64_IMAGE="${1:?amd64 image reference is required}"
+ARM64_IMAGE="${2:?arm64 image reference is required}"
 
 # Login to GHCR
 printenv GITHUB_TOKEN | docker login ghcr.io --username "${GITHUB_REPOSITORY%/*}" --password-stdin
 
-# Build Docker Image
-# Build and push multi-platform image
-docker buildx build \
-    --platform linux/amd64,linux/arm64 \
+# Publish the images built on native runners as a multi-platform image.
+docker buildx imagetools create \
     --tag "$IMAGE" \
-    --push \
-    .
+    "$AMD64_IMAGE" \
+    "$ARM64_IMAGE"
 DIGEST=$(docker buildx imagetools inspect "$IMAGE" --format "{{json .Manifest}}" | jq -r '.digest')
 docker logout ghcr.io
 
