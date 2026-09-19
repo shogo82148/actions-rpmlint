@@ -12,7 +12,7 @@ inputs:
     required: false
 runs:
   using: "docker"
-  image: 'docker://ghcr.io/shogo82148/actions-rpmlint:v0.2.0@sha256:c948ca7fd3470e2ab9781803e90007fafa361bbe0cdc49fe9ca13dbb50441b9a'
+  image: 'docker://ghcr.io/shogo82148/actions-rpmlint:v0.2.1@sha256:82bc20064d1aadda039f5ee70adc99263e4a3e6e0b3acb5ca6b95026246679b2'
 branding:
   color: red
   icon: check-circle
