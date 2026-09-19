@@ -8,14 +8,17 @@ on:
       - labeled
 
 jobs:
-  release:
+  prepare:
     if: ${{ github.event.action != 'labeled' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       pull-requests: write
       issues: write
-      packages: write
+    outputs:
+      skip: ${{ steps.bumpr.outputs.skip }}
+      next_version: ${{ steps.bumpr.outputs.next_version }}
+      current_version: ${{ steps.bumpr.outputs.current_version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,30 +37,80 @@ jobs:
         with:
           dry_run: true
 
-      - name: Set up QEMU for ARM Emulation
-        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+  build:
+    needs: prepare
+    if: ${{ !needs.prepare.outputs.skip }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-26.04
+            arch: amd64
+          - runner: ubuntu-26.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      amd64: ${{ steps.build.outputs.amd64 }}
+      arm64: ${{ steps.build.outputs.arm64 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003 # v4.4.0
 
-      # build the Docker Image
-      - name: build the Docker Image
-        if: "${{ !steps.bumpr.outputs.skip }}"
+      - name: Build and push the Docker image by digest
+        id: build
         run: |
-          git checkout main
-          ./.github/build.sh
+          printenv GITHUB_TOKEN | docker login ghcr.io --username "${GITHUB_REPOSITORY%/*}" --password-stdin
+          trap 'docker logout ghcr.io' EXIT
+          docker buildx build \
+            --platform "linux/${ARCH}" \
+            --output "type=image,name=ghcr.io/${GITHUB_REPOSITORY},push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file "${RUNNER_TEMP}/image-metadata.json" \
+            .
+          DIGEST=$(jq -er '."containerimage.digest"' "${RUNNER_TEMP}/image-metadata.json")
+          echo "${ARCH}=ghcr.io/${GITHUB_REPOSITORY}@${DIGEST}" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          INPUT_TAG: ${{ steps.bumpr.outputs.next_version }}
+          ARCH: ${{ matrix.arch }}
+
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003 # v4.4.0
+
+      - name: Publish the multi-platform Docker image and release tags
+        run: |
+          git checkout main
+          ./.github/build.sh "$AMD64_IMAGE" "$ARM64_IMAGE"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ needs.prepare.outputs.next_version }}
+          AMD64_IMAGE: ${{ needs.build.outputs.amd64 }}
+          ARM64_IMAGE: ${{ needs.build.outputs.arm64 }}
 
       # Create release.
       - uses: shogo82148/actions-create-release@8674c0ecee617c8dfb006526bcc22a362c70b88a # v1.9.1
-        if: "${{ !steps.bumpr.outputs.skip }}"
         with:
-          tag_name: ${{ steps.bumpr.outputs.next_version }}
-          release_name: Release ${{ steps.bumpr.outputs.next_version }}
+          tag_name: ${{ needs.prepare.outputs.next_version }}
+          release_name: Release ${{ needs.prepare.outputs.next_version }}
           generate_release_notes: true
-          notes_start_tag: "${{ steps.bumpr.outputs.current_version }}"
+          notes_start_tag: "${{ needs.prepare.outputs.current_version }}"
 
   release-check:
     if: "${{ github.event.action == 'labeled' }}"
