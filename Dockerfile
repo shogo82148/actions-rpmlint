@@ -75,8 +75,8 @@ RUN set -eux; \
 # dependencies for rpmlint
 RUN set -eux; \
   dnf install -y \
-  rpm-build && \
-  glibc-langpack-en; \
+    rpm-build \
+    glibc-langpack-en; \
   dnf clean all; \
   rm -rf /var/cache/dnf
 
