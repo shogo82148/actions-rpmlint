@@ -10,8 +10,7 @@ RUN set -eux; \
   dnf install -y \
   bluez-libs-devel \
   tk-devel \
-  libuuid-devel \
-  rpm-build; \
+  libuuid-devel; \
   dnf clean all; \
   rm -rf /var/cache/dnf
 
@@ -72,6 +71,14 @@ RUN set -eux; \
   export PYTHONDONTWRITEBYTECODE=1; \
   python3 --version; \
   pip3 --version
+
+# dependencies for rpmlint
+RUN set -eux; \
+  dnf install -y \
+    rpm-build \
+    glibc-langpack-en; \
+  dnf clean all; \
+  rm -rf /var/cache/dnf
 
 # install rpmlint
 RUN pip3 install --no-cache-dir rpmlint
