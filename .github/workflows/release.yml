@@ -105,7 +105,7 @@ jobs:
           ARM64_IMAGE: ${{ needs.build.outputs.arm64 }}
 
       # Create release.
-      - uses: shogo82148/actions-create-release@8674c0ecee617c8dfb006526bcc22a362c70b88a # v1.9.1
+      - uses: shogo82148/actions-create-release@cfc5a8374495dd25fe96f758cc09251ab6286911 # v1.9.2
         with:
           tag_name: ${{ needs.prepare.outputs.next_version }}
           release_name: Release ${{ needs.prepare.outputs.next_version }}
