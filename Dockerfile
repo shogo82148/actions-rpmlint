@@ -14,8 +14,8 @@ RUN set -eux; \
   dnf clean all; \
   rm -rf /var/cache/dnf
 
-ENV PYTHON_VERSION=3.14.7
-ENV PYTHON_SHA256=3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
+ENV PYTHON_VERSION=3.15.0
+ENV PYTHON_SHA256=ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575
 
 RUN set -eux; \
   savedDnfMark="$(dnf repoquery \
