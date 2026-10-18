@@ -14,8 +14,8 @@ RUN set -eux; \
   dnf clean all; \
   rm -rf /var/cache/dnf
 
-ENV PYTHON_VERSION=3.14.7
-ENV PYTHON_SHA256=3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
+ENV PYTHON_VERSION=3.15.0
+ENV PYTHON_SHA256=ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575
 
 RUN set -eux; \
   savedDnfMark="$(dnf repoquery \
@@ -72,6 +72,28 @@ RUN set -eux; \
   python3 --version; \
   pip3 --version
 
+# install rpmlint
+# some dependencies (e.g. zstandard) may not ship pre-built wheels for the latest Python,
+# so install a C compiler temporarily to build them from source.
+# NOTE: this must run before installing rpm-build; its redhat-rpm-config pulls in annobin
+# whenever gcc is installed, which prevents `dnf autoremove` from removing gcc.
+RUN set -eux; \
+  savedDnfMark="$(dnf repoquery \
+  --userinstalled \
+  --queryformat '%{name}')"; \
+  \
+  buildDeps='gcc glibc-devel'; \
+  dnf install -y $buildDeps; \
+  \
+  pip3 install --no-cache-dir rpmlint; \
+  \
+  dnf mark remove $buildDeps; \
+  dnf mark install $savedDnfMark; \
+  dnf autoremove -y; \
+  dnf clean all; \
+  rm -rf /var/cache/dnf; \
+  rpmlint --version
+
 # dependencies for rpmlint
 RUN set -eux; \
   dnf install -y \
@@ -79,9 +101,6 @@ RUN set -eux; \
     glibc-langpack-en; \
   dnf clean all; \
   rm -rf /var/cache/dnf
-
-# install rpmlint
-RUN pip3 install --no-cache-dir rpmlint
 
 COPY entrypoint.sh /entrypoint.sh
 COPY post-pr-comment.py /post-pr-comment.py
