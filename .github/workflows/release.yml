@@ -20,7 +20,7 @@ jobs:
       next_version: ${{ steps.bumpr.outputs.next_version }}
       current_version: ${{ steps.bumpr.outputs.current_version }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -33,7 +33,7 @@ jobs:
       # Bump version on merging Pull Requests with specific labels.
       # (bump:major,bump:minor,bump:patch)
       - id: bumpr
-        uses: haya14busa/action-bumpr@faf6f474bcb6174125cfc569f0b2e24cbf03d496 # v1.11.4
+        uses: haya14busa/action-bumpr@v1.11.4
         with:
           dry_run: true
 
@@ -55,12 +55,12 @@ jobs:
       amd64: ${{ steps.build.outputs.amd64 }}
       arm64: ${{ steps.build.outputs.arm64 }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003 # v4.4.0
+        uses: docker/setup-buildx-action@v4.4.0
 
       - name: Build and push the Docker image by digest
         id: build
@@ -87,12 +87,12 @@ jobs:
       issues: write
       packages: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003 # v4.4.0
+        uses: docker/setup-buildx-action@v4.4.0
 
       - name: Publish the multi-platform Docker image and release tags
         run: |
@@ -105,7 +105,7 @@ jobs:
           ARM64_IMAGE: ${{ needs.build.outputs.arm64 }}
 
       # Create release.
-      - uses: shogo82148/actions-create-release@c172624cc9dcd7e0a2211b7337e6860b882fc030 # v1.9.3
+      - uses: shogo82148/actions-create-release@v1.9.3
         with:
           tag_name: ${{ needs.prepare.outputs.next_version }}
           release_name: Release ${{ needs.prepare.outputs.next_version }}
@@ -120,7 +120,7 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -131,4 +131,4 @@ jobs:
           git checkout -b "releases/$(cat .major-version)" "origin/releases/$(cat .major-version)"
 
       - name: Post bumpr status comment
-        uses: haya14busa/action-bumpr@faf6f474bcb6174125cfc569f0b2e24cbf03d496 # v1.11.4
+        uses: haya14busa/action-bumpr@v1.11.4
